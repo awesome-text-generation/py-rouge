@@ -96,15 +96,15 @@ class Rouge:
     def update_ref(self, ref):
         """Updates the reference, including stemming and ngram computation."""
         self.ref_sents, self.ref_words = self.process_text(ref)
-        self.ref_unigrams = self._get_ngrams(1, self.ref_words)
-        self.ref_bigrams = self._get_ngrams(2, self.ref_words)
+        self.ref_unigrams = Rouge._build_ngrams(1, self.ref_words)
+        self.ref_bigrams = Rouge._build_ngrams(2, self.ref_words)
 
 
     def update_article(self, article):
         """Updates the article, including stemming and ngram computation."""
         self.article_sents, self.article_words = self.process_text(article)
-        self.art_unigrams = [self._get_ngrams(1, sent) for sent in self.article_sents] # List of dicts
-        self.art_bigrams = [self._get_ngrams(2, sent) for sent in self.article_sents] # List of dicts
+        self.art_unigrams = [Rouge._build_ngrams(1, sent) for sent in self.article_sents] # List of dicts
+        self.art_bigrams = [Rouge._build_ngrams(2, sent) for sent in self.article_sents] # List of dicts
 
     def update_hyp(self, summary_index):
         """Updates the current hypothesis"""
@@ -253,11 +253,13 @@ class Rouge:
             else:
                 return self.ref_bigrams
 
-        # ngram_set = collections.defaultdict(int)
-        # max_index_ngram_start = len(text) - n
-        # for i in range(max_index_ngram_start + 1):
-        #     ngram_set[tuple(text[i:i + n])] += 1
-        # return ngram_set
+    @staticmethod
+    def _build_ngrams(n, text):
+        ngram_set = collections.defaultdict(int)
+        max_index_ngram_start = len(text) - n
+        for i in range(max_index_ngram_start + 1):
+            ngram_set[tuple(text[i:i + n])] += 1
+        return ngram_set
 
     @staticmethod
     def _split_into_words(sentences):
