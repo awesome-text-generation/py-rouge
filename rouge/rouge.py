@@ -119,7 +119,7 @@ class Rouge:
             return ngram_dicts[0]
         else:
             s1, s2, rest = ngram_dicts[0], ngram_dicts[1], ngram_dicts[2:]
-            for key, val in s2.values():
+            for key, val in s2.items():
                 s1[key] += val
             return Rouge.merge_ngram_set([s1] + rest)
 
