@@ -2,7 +2,6 @@ import nltk
 import os
 import sys
 import re
-import itertools
 import collections
 import pkg_resources
 from io import open
@@ -185,38 +184,6 @@ class Rouge:
                     Rouge.WORDNET_KEY_VALUE[k] = v
 
     @staticmethod
-    def tokenize_text(text, language='english'):
-        """
-        Tokenize text in the specific language
-
-        Args:
-          text: The string text to tokenize
-          language: Language of the text
-
-        Returns:
-          List of tokens of text
-        """
-        return nltk.word_tokenize(text, language)
-
-    @staticmethod
-    def split_into_sentences(text, ensure_compatibility, language='english'):
-        """
-        Split text into sentences, using specified language. Use PunktSentenceTokenizer
-
-        Args:
-          text: The string text to tokenize
-          ensure_compatibility: Split sentences by '\n' instead of NLTK sentence tokenizer model
-          language: Language of the text
-
-        Returns:
-          List of tokens of text
-        """
-        if ensure_compatibility:
-            return text.split('\n')
-        else:
-            return nltk.sent_tokenize(text, language)
-
-    @staticmethod
     def stem_tokens(tokens):
         """
         Apply WordNetDB rules or Stem each token of tokens
@@ -257,9 +224,9 @@ class Rouge:
                 return self.ref_bigrams
         else:
             if n == 1:
-                return self.ref_unigrams
+                return self.hyp_unigrams
             else:
-                return self.ref_bigrams
+                return self.hyp_bigrams
 
     @staticmethod
     def _build_ngrams(n, text):
@@ -268,21 +235,6 @@ class Rouge:
         for i in range(max_index_ngram_start + 1):
             ngram_set[tuple(text[i:i + n])] += 1
         return ngram_set
-
-    @staticmethod
-    def _split_into_words(sentences):
-        """
-        Splits multiple sentences into words and flattens the result
-
-        Args:
-          sentences: list of string
-
-        Returns:
-          A list of words (split by white space)
-        """
-        # Modified from https://github.com/pltrdy/seq2seq/blob/master/seq2seq/metrics/rouge.py
-        return list(itertools.chain(*[_.split() for _ in sentences]))
-
 
     def _get_word_ngrams_and_length(self, n, use_ref):
         """
@@ -318,12 +270,6 @@ class Rouge:
             return self.ref_unigrams, len(self.ref_words)
         else:
             return self.hyp_unigrams, len(self.hyp_words)
-
-        # tokens = Rouge._split_into_words(sentences)
-        # unigram_set = collections.defaultdict(int)
-        # for token in tokens:
-        #     unigram_set[token] += 1
-        # return unigram_set, len(tokens)
 
     @staticmethod
     def _compute_p_r_f_score(evaluated_count, reference_count, overlapping_count, alpha=0.5, weight_factor=1.0):
@@ -498,10 +444,10 @@ class Rouge:
             overlapping_count_length = 0
             for ref_token_id, val in enumerate(hit_mask):
                 if val == 1:
-                    token = reference_sentence_tokens[ref_token_id]
+                    token = tuple([reference_sentence_tokens[ref_token_id]])
                     if evaluated_unigrams_dict[token] > 0 and reference_unigrams_dict[token] > 0:
                         evaluated_unigrams_dict[token] -= 1
-                        reference_unigrams_dict[ref_token_id] -= 1
+                        reference_unigrams_dict[ref_token_id] -= 1 # TODO: shouldn't this be token?
 
                         if use_WLCS:
                             overlapping_count_length += 1
@@ -654,129 +600,3 @@ class Rouge:
                 for stat in Rouge.STATS:
                     scores[metric][0][stat].append(score[stat])
         return scores
-
-    def _preprocess_summary_as_a_whole(self, summary):
-        """
-        Preprocessing (truncate text if enable, tokenization, stemming if enable, lowering) of a summary as a whole
-
-        Args:
-          summary: string of the summary
-
-        Returns:
-          Return the preprocessed summary (string)
-        """
-        sentences = Rouge.split_into_sentences(summary, self.ensure_compatibility)
-
-        # Truncate
-        if self.limit_length:
-            # By words
-            if self.length_limit_type == 'words':
-                summary = ' '.join(sentences)
-                all_tokens = summary.split() # Counting as in the perls script
-                summary = ' '.join(all_tokens[:self.length_limit])
-
-            # By bytes
-            elif self.length_limit_type == 'bytes':
-                summary = ''
-                current_len = 0
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    sentence_len = len(sentence)
-
-                    if current_len + sentence_len < self.length_limit:
-                        if current_len != 0:
-                            summary += ' '
-                        summary += sentence
-                        current_len += sentence_len
-                    else:
-                        if current_len > 0:
-                            summary += ' '
-                        summary += sentence[:self.length_limit-current_len]
-                        break
-        else:
-            summary = ' '.join(sentences)
-
-        summary = Rouge.REMOVE_CHAR_PATTERN.sub(' ', summary.lower()).strip()
-
-        # Preprocess. Hack: because official ROUGE script bring "cannot" as "cannot" and "can not" as "can not",
-        # we have to hack nltk tokenizer to not transform "cannot/can not" to "can not"
-        if self.ensure_compatibility:
-            tokens = self.tokenize_text(Rouge.KEEP_CANNOT_IN_ONE_WORD.sub('_cannot_', summary))
-        else:
-            tokens = self.tokenize_text(Rouge.REMOVE_CHAR_PATTERN.sub(' ', summary))
-
-        if self.stemming:
-            self.stem_tokens(tokens) # stemming in-place
-
-        if self.ensure_compatibility:
-            preprocessed_summary = [Rouge.KEEP_CANNOT_IN_ONE_WORD_REVERSED.sub('cannot', ' '.join(tokens))]
-        else:
-            preprocessed_summary = [' '.join(tokens)]
-
-        return preprocessed_summary
-
-    def _preprocess_summary_per_sentence(self, summary):
-        """
-        Preprocessing (truncate text if enable, tokenization, stemming if enable, lowering) of a summary by sentences
-
-        Args:
-          summary: string of the summary
-
-        Returns:
-          Return the preprocessed summary (string)
-        """
-        sentences = Rouge.split_into_sentences(summary, self.ensure_compatibility)
-
-        # Truncate
-        if self.limit_length:
-            final_sentences = []
-            current_len = 0
-            # By words
-            if self.length_limit_type == 'words':
-                for sentence in sentences:
-                    tokens = sentence.strip().split()
-                    tokens_len = len(tokens)
-                    if current_len + tokens_len < self.length_limit:
-                        sentence = ' '.join(tokens)
-                        final_sentences.append(sentence)
-                        current_len += tokens_len
-                    else:
-                        sentence = ' '.join(tokens[:self.length_limit - current_len])
-                        final_sentences.append(sentence)
-                        break
-            # By bytes
-            elif self.length_limit_type == 'bytes':
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    sentence_len = len(sentence)
-                    if current_len + sentence_len < self.length_limit:
-                        final_sentences.append(sentence)
-                        current_len += sentence_len
-                    else:
-                        sentence = sentence[:self.length_limit - current_len]
-                        final_sentences.append(sentence)
-                        break
-            sentences = final_sentences
-
-        final_sentences = []
-        for sentence in sentences:
-            sentence = Rouge.REMOVE_CHAR_PATTERN.sub(' ', sentence.lower()).strip()
-
-            # Preprocess. Hack: because official ROUGE script bring "cannot" as "cannot" and "can not" as "can not",
-            # we have to hack nltk tokenizer to not transform "cannot/can not" to "can not"
-            if self.ensure_compatibility:
-                tokens = self.tokenize_text(Rouge.KEEP_CANNOT_IN_ONE_WORD.sub('_cannot_', sentence))
-            else:
-                tokens = self.tokenize_text(Rouge.REMOVE_CHAR_PATTERN.sub(' ', sentence))
-
-            if self.stemming:
-                self.stem_tokens(tokens) # stemming in-place
-
-            if self.ensure_compatibility:
-                sentence = Rouge.KEEP_CANNOT_IN_ONE_WORD_REVERSED.sub('cannot', ' '.join(tokens))
-            else:
-                sentence = ' '.join(tokens)
-
-            final_sentences.append(sentence)
-
-        return final_sentences
