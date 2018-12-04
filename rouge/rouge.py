@@ -7,6 +7,7 @@ import collections
 import pkg_resources
 from io import open
 from corenlp import CoreNLPClient
+from copy import copy
 
 class Rouge:
     DEFAULT_METRICS = {"rouge-n"}
@@ -111,18 +112,22 @@ class Rouge:
         """Updates the current hypothesis"""
         self.hyp_sents = [self.article_sents[i] for i in summary_index]
         self.hyp_words = [word for sent in self.hyp_sents for word in sent]
-        self.hyp_unigrams = Rouge.merge_ngram_set([self.art_unigrams[i] for i in summary_index])
-        self.hyp_bigrams = Rouge.merge_ngram_set([self.art_bigrams[i] for i in summary_index])
+        self.hyp_unigrams = Rouge.merge_ngram_set([self.art_unigrams[i] for i in summary_index], bigram = False)
+        self.hyp_bigrams = Rouge.merge_ngram_set([self.art_bigrams[i] for i in summary_index], bigram = True, sents = self.hyp_sents)
 
     @staticmethod
-    def merge_ngram_set(ngram_dicts):
+    def merge_ngram_set(ngram_dicts, bigram, sents = None):
         if len(ngram_dicts) == 1:
             return ngram_dicts[0]
         else:
-            s1, s2, rest = ngram_dicts[0], ngram_dicts[1], ngram_dicts[2:]
-            for key, val in s2.items():
-                s1[key] += val
-            return Rouge.merge_ngram_set([s1] + rest)
+            d1, d2, rest = copy(ngram_dicts[0]), ngram_dicts[1], ngram_dicts[2:]
+            s1, s2 = sents[0], sents[1:]
+            for key, val in d2.items():
+                d1[key] += val
+            if bigram and s2 is not None: # Adding bigram for intersection between sentences
+                sent_intersect = (s1[-1], s2[0][0])
+                d1[sent_intersect] += 1
+            return Rouge.merge_ngram_set([d1] + rest, s2)
 
     def process_text(self, text):
         ann = self.tok_client.annotate(text)
