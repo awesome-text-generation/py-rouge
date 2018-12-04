@@ -92,6 +92,7 @@ class Rouge:
 
         # Tokenizer
         self.tok_client = CoreNLPClient(annotators=['ssplit', 'tokenize'], stdout=sys.stderr, max_char_length=1020000)
+        self.tok_client.start()
 
     def update_ref(self, ref):
         """Updates the reference, including stemming and ngram computation."""
@@ -140,7 +141,7 @@ class Rouge:
 
     @staticmethod
     def strip_punc(tokens):
-        return [t for t in tokens if not Rouge.REMOVE_CHAR_PATTERN.match(t)]
+        return [t.lower() for t in tokens if not Rouge.REMOVE_CHAR_PATTERN.match(t)]
 
     @staticmethod
     def load_stemmer(ensure_compatibility):
