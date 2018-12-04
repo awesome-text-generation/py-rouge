@@ -121,13 +121,15 @@ class Rouge:
             return ngram_dicts[0]
         else:
             d1, d2, rest = copy(ngram_dicts[0]), ngram_dicts[1], ngram_dicts[2:]
-            s1, s2 = sents[0], sents[1:]
             for key, val in d2.items():
                 d1[key] += val
-            if bigram and s2 is not None: # Adding bigram for intersection between sentences
-                sent_intersect = (s1[-1], s2[0][0])
-                d1[sent_intersect] += 1
-            return Rouge.merge_ngram_set([d1] + rest, s2)
+            if bigram:
+                s1, s2 = sents[0], sents[1:]
+                if s2 is not None: # Adding bigram for intersection between sentences
+                    sent_intersect = (s1[-1], s2[0][0])
+                    d1[sent_intersect] += 1
+            rest_sent = None if not bigram else s2
+            return Rouge.merge_ngram_set([d1] + rest, rest_sent)
 
     def process_text(self, text):
         ann = self.tok_client.annotate(text)
