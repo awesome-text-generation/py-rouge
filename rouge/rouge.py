@@ -114,6 +114,20 @@ class Rouge:
         self.hyp_unigrams = Rouge.merge_ngram_set([self.art_unigrams[i] for i in summary_index], bigram = False)
         self.hyp_bigrams = Rouge.merge_ngram_set([self.art_bigrams[i] for i in summary_index], bigram = True, sents = self.hyp_sents)
 
+    def clear(self):
+        self.ref_sents = None
+        self.ref_words = None
+        self.ref_unigrams = None
+        self.ref_bigrams = None
+        self.article_sents = None
+        self.article_words = None
+        self.art_unigrams = None
+        self.art_bigrams = None
+        self.hyp_sents = None
+        self.hyp_words = None
+        self.hyp_unigrams = None
+        self.hyp_bigrams = None
+
     @staticmethod
     def merge_ngram_set(ngram_dicts, bigram, sents = None):
         if len(ngram_dicts) == 1:
@@ -267,9 +281,9 @@ class Rouge:
           A set of n-grams and their freqneucy
         """
         if use_ref:
-            return self.ref_unigrams, len(self.ref_words)
+            return copy(self.ref_unigrams), len(self.ref_words)
         else:
-            return self.hyp_unigrams, len(self.hyp_words)
+            return copy(self.hyp_unigrams), len(self.hyp_words)
 
     @staticmethod
     def _compute_p_r_f_score(evaluated_count, reference_count, overlapping_count, alpha=0.5, weight_factor=1.0):
