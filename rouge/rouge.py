@@ -138,8 +138,11 @@ class Rouge:
             if bigram:
                 s1, s2 = sents[0], sents[1:]
                 if s2: # Adding bigram for intersection between sentences
-                    sent_intersect = (s1[-1], s2[0][0])
-                    d1[sent_intersect] += 1
+                    try:
+                        sent_intersect = (s1[-1], s2[0][0])
+                        d1[sent_intersect] += 1
+                    except IndexError:
+                        print("Got IndexError with sents {}, {}".format(s1, s2[0]))
             rest_sent = None if not bigram else s2
             return Rouge.merge_ngram_set([d1] + rest, bigram, rest_sent)
 
