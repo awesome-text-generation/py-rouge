@@ -142,7 +142,7 @@ class Rouge:
                     sent_intersect = (s1[-1], s2[0][0])
                     d1[sent_intersect] += 1
             rest_sent = None if not bigram else s2
-            return Rouge.merge_ngram_set([d1] + rest, rest_sent)
+            return Rouge.merge_ngram_set([d1] + rest, bigram, rest_sent)
 
     def process_text(self, text):
         ann = self.tok_client.annotate(text)
