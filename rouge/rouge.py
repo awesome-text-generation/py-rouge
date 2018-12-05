@@ -467,7 +467,7 @@ class Rouge:
                     token = tuple([reference_sentence_tokens[ref_token_id]])
                     if evaluated_unigrams_dict[token] > 0 and reference_unigrams_dict[token] > 0:
                         evaluated_unigrams_dict[token] -= 1
-                        reference_unigrams_dict[ref_token_id] -= 1 # TODO: shouldn't this be token?
+                        reference_unigrams_dict[token] -= 1 # TODO: shouldn't this be token?
 
                         if use_WLCS:
                             overlapping_count_length += 1
