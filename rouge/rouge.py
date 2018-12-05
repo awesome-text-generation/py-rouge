@@ -154,7 +154,8 @@ class Rouge:
             ann_text = Rouge.strip_punc(ann_text)
             if self.stemming:
                 self.stem_tokens(ann_text)
-            text_sents.append(ann_text)
+            if ann_text:  # The above process may result in empty lists which we don't want
+                text_sents.append(ann_text)
         text_words = [word for sent in text_sents for word in sent]  # Flattened version
         return text_sents, text_words
 
