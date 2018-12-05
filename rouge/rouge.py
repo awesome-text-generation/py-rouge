@@ -26,7 +26,7 @@ class Rouge:
     WORDNET_DB_DELIMITER = '|'
     STEMMER = None
 
-    def __init__(self, metrics=None, max_n=None, limit_length=True, length_limit=665, length_limit_type='bytes', apply_avg=True, apply_best=False, stemming=True, alpha=0.5, weight_factor=1.0, ensure_compatibility=True):
+    def __init__(self, tokenizer, metrics=None, max_n=None, limit_length=True, length_limit=665, length_limit_type='bytes', apply_avg=True, apply_best=False, stemming=True, alpha=0.5, weight_factor=1.0, ensure_compatibility=True):
         """
         Handle the ROUGE score computation as in the official perl script.
 
@@ -91,8 +91,7 @@ class Rouge:
             Rouge.load_stemmer(ensure_compatibility)
 
         # Tokenizer
-        self.tok_client = CoreNLPClient(annotators=['ssplit', 'tokenize'], stdout=sys.stderr, max_char_length=1020000)
-        self.tok_client.start()
+        self.tok_client = tokenizer
 
     def update_ref(self, ref):
         """Updates the reference, including stemming and ngram computation."""
@@ -155,9 +154,6 @@ class Rouge:
             text_sents.append(ann_text)
         text_words = [word for sent in text_sents for word in sent]  # Flattened version
         return text_sents, text_words
-
-    def stop(self):
-        self.tok_client.stop()
 
     @staticmethod
     def strip_punc(tokens):
