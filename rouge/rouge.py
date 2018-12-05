@@ -161,7 +161,13 @@ class Rouge:
 
     @staticmethod
     def strip_punc(tokens):
-        return [re.sub(Rouge.REMOVE_CHAR_PATTERN, "", t.lower()) for t in tokens if not Rouge.REMOVE_CHAR_PATTERN.match(t)]
+        stripped = []
+        for t in tokens:
+            if not Rouge.REMOVE_CHAR_PATTERN.match(t):
+                stripped += re.sub(Rouge.REMOVE_CHAR_PATTERN, " ", t.lower()).split()
+        return stripped
+
+        # return [re.sub(Rouge.REMOVE_CHAR_PATTERN, " ", t.lower()).split() for t in tokens if not Rouge.REMOVE_CHAR_PATTERN.match(t)]
 
     @staticmethod
     def load_stemmer(ensure_compatibility):
