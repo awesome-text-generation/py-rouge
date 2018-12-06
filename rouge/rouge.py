@@ -127,6 +127,9 @@ class Rouge:
         self.hyp_unigrams = None
         self.hyp_bigrams = None
 
+    def stop(self):
+        self.tok_client.stop()
+
     @staticmethod
     def merge_ngram_set(ngram_dicts, bigram, sents = None):
         if len(ngram_dicts) == 1:
